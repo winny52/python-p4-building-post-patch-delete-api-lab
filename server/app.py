@@ -30,17 +30,30 @@ def bakeries():
     )
     return response
 
-@app.route('/bakeries/<int:id>')
+@app.route('/bakeries/<int:id>',methods=["GET","PATCH"])
 def bakery_by_id(id):
+    bakery = Bakery.query.get(id)
+    if request.method =="GET":
 
-    bakery = Bakery.query.filter_by(id=id).first()
-    bakery_serialized = bakery.to_dict()
+       
+        bakery_serialized = bakery.to_dict()
 
-    response = make_response(
-        bakery_serialized,
-        200
-    )
-    return response
+        response = make_response(
+            bakery_serialized,
+            200
+        )
+        return response
+    elif request.method=="PATCH":
+        
+        for atr in request.form:
+            setattr(bakery ,atr ,request.form.get(atr))
+
+        bakery_dict =bakery.to_dict()
+        response =make_response(jsonify(bakery_dict),200)    
+
+        return response
+
+
 
 @app.route('/baked_goods/by_price')
 def baked_goods_by_price():
@@ -65,6 +78,46 @@ def most_expensive_baked_good():
         200
     )
     return response
+
+
+@app.route("/baked_goods",methods=['POST','GET'])
+def all_baked_goods():
+    if request.method =="GET":
+        
+        baked_goods=BakedGood.query.all()
+        baked_list=[bg.to_dict() for bg in baked_goods]
+        response =make_response(jsonify(baked_list),200)
+        return response
+    elif request.method =="POST":
+        add_baked_goods =BakedGood(
+             name =request.form.get("name"),
+             price=request.form.get("price"),
+             bakery_id =request.form.get("bakery_id")
+            
+        )
+        db.session.add(add_baked_goods)
+        db.session.commit()
+
+        baked_dict =add_baked_goods.to_dict()
+        response =make_response(jsonify(baked_dict),201)
+
+        return response
+    
+@app.route("/baked_goods/<int:id>",methods=['GET','DELETE'])
+def delete_baked(id):
+    baked_good=BakedGood.query.get(id)
+    if request.method =="GET":
+        baked_dict=baked_good.to_dict()
+        response =make_response(jsonify(baked_dict),200)
+        return response
+    elif request.method =="DELETE":
+        db.session.delete(baked_good)
+        db.session.commit()
+
+        message ={"item ":"deleted successfuly"}
+        response =make_response(jsonify(message),200)
+        return response
+
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
